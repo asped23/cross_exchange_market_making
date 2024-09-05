@@ -453,7 +453,7 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
                     await self.handle_expired_taker_order(order_id, remaining_quantity)
 
 
-    async def handle_expired_taker_order(self, order_id: str, remaining_quantity: Decimal):
+    async def handle_expired_taker_order(self, order_id: str, remaining_quantity: Decimal, active_order: LimitOrder):
         """
         Annule l'ordre limit et place un ordre market pour exécuter le reste de la quantité.
         """
@@ -462,7 +462,7 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
 
         # Annuler l'ordre limit sur le taker exchange
         self.logger().info(f"Attempting to cancel order {order_id} on taker market.")
-        await taker_market.cancel_order(order_id)
+        await self.cancel_maker_order(market_pair, active_order.client_order_id)
         
         self.logger().info(f"Order {order_id} expired after 2 minutes. Cancelling and re-executing as market order.")
 
