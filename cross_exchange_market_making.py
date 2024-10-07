@@ -477,7 +477,7 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
     
             elapsed_time = timestamp - placed_timestamp
             self.logger().info(f"Taker order {order_id} has been open for {elapsed_time} seconds.")
-            self.logger().info(self._taker_order_timestamps)
+            self.logger().info(f"_taker_order_timestamps: {self._taker_order_timestamps}")
     
             if elapsed_time > taker_order_timeout:
                 self.logger().info(f"Taker order {order_id} has expired (timeout={taker_order_timeout}s). Marking for cancellation.")
