@@ -132,7 +132,7 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
         self._taker_to_maker_order_ids = {}
         # Holds hedging trade ids for respective maker orders
         self._maker_to_hedging_trades = {}
-        self._orders_to_cancel = {}
+        orders_to_cancel = []
 
         all_markets = list(self._maker_markets | self._taker_markets)
         
@@ -477,7 +477,6 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
     
             elapsed_time = timestamp - placed_timestamp
             self.logger().info(f"Taker order {order_id} has been open for {elapsed_time} seconds.")
-            self.logger().info(f"_taker_order_timestamps: {self._taker_order_timestamps}")
     
             if elapsed_time > taker_order_timeout:
                 self.logger().info(f"Taker order {order_id} has expired (timeout={taker_order_timeout}s). Marking for cancellation.")
