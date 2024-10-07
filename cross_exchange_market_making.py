@@ -138,8 +138,8 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
         
         self.add_markets(all_markets)
         self._taker_order_timestamps = {}
-        self._taker_filled_quantities = {} #Ajout chatgpt pour suivis des quantitées filled avant 2 minutes
-        self._last_debug_log_timestamp = 0  # Horodatage du dernier log de débogage
+        self._taker_filled_quantities = {} #Ajout chatgpt pour suivis des quantitees filled avant 2 minutes
+        self._last_debug_log_timestamp = 0  # Horodatage du dernier log de debogage
 
     @property
     def order_amount(self):
@@ -430,35 +430,35 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
         
     def observe_taker_filled_orders(self, order_filled_event: OrderFilledEvent):
         """
-        Observe les événements d'ordres remplis spécifiquement sur le taker exchange et met à jour
+        Observe les evenements d'ordres remplis specifiquement sur le taker exchange et met a jour
         _taker_filled_quantities.
         """
         taker_order_id = order_filled_event.order_id
     
-        # Récupérer le market_pair correspondant à cet ordre
+        # Recuperer le market_pair correspondant a cet ordre
         market_pair = self._market_pair_tracker.get_market_pair_from_order_id(taker_order_id)
     
-        # Vérifier si cet ordre est bien un ordre limit du taker exchange
+        # Verifier si cet ordre est bien un ordre limit du taker exchange
         if market_pair and taker_order_id in self._taker_to_maker_order_ids:
-            # Vérifier que l'ordre appartient au taker exchange en comparant les trading_pair
+            # Verifier que l'ordre appartient au taker exchange en comparant les trading_pair
             if market_pair.taker.trading_pair == order_filled_event.trading_pair:
                 maker_order_id = self._taker_to_maker_order_ids[taker_order_id]
     
-                # Initialiser la structure imbriquée si nécessaire
+                # Initialiser la structure imbriquee si necessaire
                 if maker_order_id not in self._taker_filled_quantities:
                     self._taker_filled_quantities[maker_order_id] = {}
     
-                # Vérifier si la quantité remplie a déjà été initialisée pour cet ordre taker
+                # Verifier si la quantite remplie a deja ete initialisee pour cet ordre taker
                 if taker_order_id not in self._taker_filled_quantities[maker_order_id]:
                     self._taker_filled_quantities[maker_order_id][taker_order_id] = Decimal(0)
     
-                # Ajouter la quantité remplie pour cet événement pour cet ordre taker spécifique
+                # Ajouter la quantite remplie pour cet evenement pour cet ordre taker specifique
                 self._taker_filled_quantities[maker_order_id][taker_order_id] += order_filled_event.amount
     
-                # Calculer la quantité totale remplie pour tous les ordres taker liés à cet ordre maker
+                # Calculer la quantite totale remplie pour tous les ordres taker lies a cet ordre maker
                 total_filled_for_maker_order = sum(self._taker_filled_quantities[maker_order_id].values())
     
-                # Journaliser la quantité totale remplie jusqu'à présent
+                # Journaliser la quantite totale remplie jusqu'a present
                 self.logger().info(f"Taker order {taker_order_id} has been partially filled: "
                                    f"{total_filled_for_maker_order}/{order_filled_event.amount}.")
                 
@@ -471,12 +471,13 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
     
         # Loop through taker orders and check if they have expired
         for order_id, placed_timestamp in list(self._taker_order_timestamps.items()):
-            # Vérifiez si l'ordre a été rempli avant de continuer
+            # Verifiez si l'ordre a ete rempli avant de continuer
             if order_id not in self._taker_to_maker_order_ids:
                 self.logger().info(f"Taker order {order_id} is not in _taker_to_maker_order_ids, might already be filled or removed.")
     
             elapsed_time = timestamp - placed_timestamp
             self.logger().info(f"Taker order {order_id} has been open for {elapsed_time} seconds.")
+            self.logger().info(self._taker_order_timestamps)
     
             if elapsed_time > taker_order_timeout:
                 self.logger().info(f"Taker order {order_id} has expired (timeout={taker_order_timeout}s). Marking for cancellation.")
@@ -527,7 +528,7 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
                 self.logger().info(f"Placing a market buy order on {market_pair.taker.market.display_name} for remaining quantity {remaining_quantity}.")
                 new_market_order_id = self.buy_with_specific_market(market_pair.taker, remaining_quantity, order_type=OrderType.MARKET)
     
-                # Ajouter l'ordre market dans le suivi et la base de données
+                # Ajouter l'ordre market dans le suivi et la base de donnees
                 self._sb_order_tracker.add_create_order_pending(new_market_order_id)
                 self._market_pair_tracker.start_tracking_order_id(new_market_order_id, market_pair.taker.market, market_pair)
     
@@ -539,7 +540,7 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
                 self.logger().info(f"Placing a market sell order on {market_pair.taker.market.display_name} for remaining quantity {remaining_quantity}.")
                 new_market_order_id = self.sell_with_specific_market(market_pair.taker, remaining_quantity, order_type=OrderType.MARKET)
     
-                # Ajouter l'ordre market dans le suivi et la base de données
+                # Ajouter l'ordre market dans le suivi et la base de donnees
                 self._sb_order_tracker.add_create_order_pending(new_market_order_id)
                 self._market_pair_tracker.start_tracking_order_id(new_market_order_id, market_pair.taker.market, market_pair)
     
@@ -839,31 +840,31 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
 
     def did_fill_order(self, order_filled_event: OrderFilledEvent):
         """
-        Cette méthode est appelée chaque fois qu'un ordre est rempli, qu'il provienne du maker ou du taker.
-        Pour les ordres du maker, elle gère les tâches de hedging. Pour les ordres du taker, elle met à jour
-        les quantités partiellement remplies.
+        Cette methode est appelee chaque fois qu'un ordre est rempli, qu'il provienne du maker ou du taker.
+        Pour les ordres du maker, elle gere les taches de hedging. Pour les ordres du taker, elle met a jour
+        les quantites partiellement remplies.
         """
         maker_order_id = order_filled_event.order_id
         exchange_trade_id = order_filled_event.exchange_trade_id
     
-        # Vérification pour les ordres du Maker
+        # Verification pour les ordres du Maker
         if maker_order_id in self._maker_to_taker_order_ids.keys():
-            # Récupérer le market_pair correspondant à cet ordre du Maker
+            # Recuperer le market_pair correspondant a cet ordre du Maker
             market_pair = self._market_pair_tracker.get_market_pair_from_order_id(maker_order_id)
     
             if market_pair is None:
                 self.logger().error(f"Market pair not found for maker order ID {maker_order_id}. Ignoring this fill event.")
-                return  # Sortir si le market_pair n'a pas pu être trouvé
+                return  # Sortir si le market_pair n'a pas pu etre trouve
     
-            # Vérifier si cet ordre a déjà été traité ou non
+            # Verifier si cet ordre a deja ete traite ou non
             if maker_order_id not in self._maker_to_hedging_trades.keys():
                 self._maker_to_hedging_trades[maker_order_id] = []
     
             if exchange_trade_id not in self._maker_to_hedging_trades[maker_order_id]:
-                # Ce remplissage n'a pas encore été traité, soumettre un ordre de hedging sur le Taker
+                # Ce remplissage n'a pas encore ete traite, soumettre un ordre de hedging sur le Taker
                 self._maker_to_hedging_trades[maker_order_id] += [exchange_trade_id]
     
-                # Nettoyage des tâches de hedging
+                # Nettoyage des taches de hedging
                 self.hedge_tasks_cleanup()
     
                 # Lancer le hedging pour cet ordre du Maker
@@ -871,16 +872,16 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
                     self.hedge_filled_maker_order(maker_order_id, order_filled_event)
                 )
     
-        # Vérification pour les ordres du Taker
+        # Verification pour les ordres du Taker
         elif maker_order_id in self._taker_to_maker_order_ids.keys():
-            # Récupérer le market_pair correspondant à cet ordre du Taker
+            # Recuperer le market_pair correspondant a cet ordre du Taker
             market_pair = self._market_pair_tracker.get_market_pair_from_order_id(maker_order_id)
     
             if market_pair is None:
                 self.logger().error(f"Market pair not found for taker order ID {maker_order_id}. Ignoring this fill event.")
-                return  # Sortir si le market_pair n'a pas pu être trouvé
+                return  # Sortir si le market_pair n'a pas pu etre trouve
     
-            # Appel de observe_taker_filled_orders pour suivre les quantités partiellement remplies sur le Taker
+            # Appel de observe_taker_filled_orders pour suivre les quantites partiellement remplies sur le Taker
             if market_pair.taker.trading_pair == order_filled_event.trading_pair:
                 self.observe_taker_filled_orders(order_filled_event)
 
@@ -891,13 +892,13 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
 
     def did_fail_order(self, order_failed_event: MarketOrderFailureEvent):
         """
-        Cette méthode est appelée chaque fois qu'un ordre échoue, et traite le nettoyage associé.
+        Cette methode est appelee chaque fois qu'un ordre echoue, et traite le nettoyage associe.
         """
         if order_failed_event.order_id in self._taker_to_maker_order_ids.keys():
-            # Traiter l'ordre échoué
+            # Traiter l'ordre echoue
             self.handle_unfilled_taker_order(order_failed_event)
             
-            # Nettoyage du timestamp de l'ordre échoué
+            # Nettoyage du timestamp de l'ordre echoue
             if order_failed_event.order_id in self._taker_order_timestamps:
                 del self._taker_order_timestamps[order_failed_event.order_id]
                 self.logger().info(f"Timer for taker order {order_failed_event.order_id} stopped due to failure.")
