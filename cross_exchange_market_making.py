@@ -132,7 +132,7 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
         self._taker_to_maker_order_ids = {}
         # Holds hedging trade ids for respective maker orders
         self._maker_to_hedging_trades = {}
-        orders_to_cancel = []
+        self._orders_to_cancel = []
 
         all_markets = list(self._maker_markets | self._taker_markets)
         
@@ -474,7 +474,8 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
             # Verifiez si l'ordre a ete rempli avant de continuer
             if order_id not in self._taker_to_maker_order_ids:
                 self.logger().info(f"Taker order {order_id} is not in _taker_to_maker_order_ids, might already be filled or removed.")
-    
+                self.logger().info(f"_taker_order_timestamps: {self._taker_order_timestamps}")
+                
             elapsed_time = timestamp - placed_timestamp
             self.logger().info(f"Taker order {order_id} has been open for {elapsed_time} seconds.")
     
@@ -486,6 +487,7 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
         for order_id in self._orders_to_cancel:
             self.logger().info(f"Attempting to cancel and replace expired taker order {order_id} with a market order.")
             await self.replace_taker_limit_with_market_order(order_id)
+            
 
     async def replace_taker_limit_with_market_order(self, order_id: str):
         self.logger().info(f"Starting the process to replace taker limit order {order_id} with a market order.")
@@ -493,7 +495,6 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
         if order_id not in self._taker_to_maker_order_ids:
             self.logger().info(f"Taker order {order_id} has already been filled or removed. Exiting process.")
             # Trigger the next cycle of placing limit orders on the maker
-            await self.trigger_new_maker_orders(market_pair)
     
         market_pair = self._market_pair_tracker.get_market_pair_from_order_id(order_id)
     
@@ -1176,6 +1177,26 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
                     f"{buy_fill_quantity} {market_pair.maker.base_asset} is less than the minimum order amount "
                     f"allowed on the taker market. No hedging possible yet."
                 )
+                # Si l'ordre est trop petit, faire un nettoyage
+                self.logger().info(f"Order too small: {quantized_hedge_amount} is less than the minimum order size allowed on the exchange.")
+                
+                # Suppression des ordres lies dans les structures de suivi
+                if maker_order_id in self._taker_to_maker_order_ids:
+                    del self._taker_to_maker_order_ids[maker_order_id]
+                    
+                if maker_order_id in self._maker_to_taker_order_ids:
+                    del self._maker_to_taker_order_ids[maker_order_id]
+
+                if maker_order_id in self._ongoing_hedging:
+                    del self._ongoing_hedging[maker_order_id]
+
+                if maker_order_id in self._maker_to_hedging_trades:
+                    del self._maker_to_hedging_trades[maker_order_id]
+
+                self.logger().info(f"Order cleanup completed for maker order {maker_order_id}. Triggering new orders...")
+                
+                # Redeclencher le cycle de creation de nouveaux ordres pour le market_pair
+                await self.trigger_new_maker_orders(market_pair)
 
         if sell_fill_quantity > 0:
             # Maker sell
@@ -1257,6 +1278,26 @@ class CrossExchangeMarketMakingStrategy(StrategyPyBase):
                     f"{sell_fill_quantity} {market_pair.maker.base_asset} is less than the minimum order amount "
                     f"allowed on the taker market. No hedging possible yet."
                 )
+                # Si l'ordre est trop petit, faire un nettoyage
+                self.logger().info(f"Order too small: {quantized_hedge_amount} is less than the minimum order size allowed on the exchange.")
+                
+                # Suppression des ordres lies dans les structures de suivi
+                if maker_order_id in self._taker_to_maker_order_ids:
+                    del self._taker_to_maker_order_ids[maker_order_id]
+                    
+                if maker_order_id in self._maker_to_taker_order_ids:
+                    del self._maker_to_taker_order_ids[maker_order_id]
+
+                if maker_order_id in self._ongoing_hedging:
+                    del self._ongoing_hedging[maker_order_id]
+
+                if maker_order_id in self._maker_to_hedging_trades:
+                    del self._maker_to_hedging_trades[maker_order_id]
+
+                self.logger().info(f"Order cleanup completed for maker order {maker_order_id}. Triggering new orders...")
+                
+                # Redeclencher le cycle de creation de nouveaux ordres pour le market_pair
+                await self.trigger_new_maker_orders(market_pair)
 
     def get_adjusted_limit_order_size(self, market_pair: MakerTakerMarketPair) -> Tuple[Decimal, Decimal]:
         """
